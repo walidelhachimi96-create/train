@@ -1,10 +1,115 @@
-تغطية جميع المراكز gare port neuf
-الحد الاقصى للعمل 5 ايام و 6 ايام للضرورة القصوى
-ياخد العامل يوم راحة و في المرة المقبلة يومين
-ادا عمل 5 ايام صباحا ياخد يومين راحة
-ادا عمل 5 ايام زوالا ياخد يوم واحد
-في حالة عمله 6 ايام ياخد يومين
-عند تعديل وضعية العامل الى مرض او عطلة على النضام تعويض النتصب الفارغ
-ادا عمل العامل زوالا فلا يمكنه العمل صباحا في اليوم الموالي الا في الحالات القصوى
-ان كان فاءض ضع العامل في الاحتياط
-الاحتياط يعتبر كيوم عمل 
+<!DOCTYPE html>
+<html dir="ltr" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horaires Trains - Départ/Arrivée</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #4a5568; margin-bottom: 30px; }
+        #clock { font-size: 3em; text-align: center; margin: 20px 0; color: #2d3748; font-weight: bold; }
+        .input-group { text-align: center; margin: 30px 0; }
+        input[type="number"] { padding: 20px; font-size: 1.5em; border: 3px solid #e2e8f0; border-radius: 15px; width: 220px; text-align: center; }
+        button { padding: 20px 40px; font-size: 1.5em; background: #48bb78; color: white; border: none; border-radius: 15px; cursor: pointer; margin-left: 15px; }
+        button:hover { background: #38a169; }
+        #result { margin-top: 30px; padding: 30px; border-radius: 15px; text-align: center; font-size: 1.8em; font-weight: bold; }
+        .success { background: linear-gradient(135deg, #c6f6d5, #9ae6b4); color: #22543d; border: 3px solid #9ae6b4; }
+        .error { background: #fed7d7; color: #742a2a; border: 3px solid #fc8181; font-size: 1.4em; }
+        .info { background: #bee3f8; color: #2a4365; border: 3px solid #90cdf4; font-size: 1.2em; }
+        .depart { color: #38a169; font-size: 2em; }
+        .arrival { color: #ed8936; font-size: 2em; }
+        .route { font-size: 1.3em; color: #2b6cb0; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Horaires Trains Marchandises<br><small>Fascicule H - Septembre 2025</small></h1>
+        <div id="clock"></div>
+        <div class="input-group">
+            <input type="number" id="trainNum" placeholder="Numéro train" min="1000" max="9999">
+            <button onclick="searchTrain()">Rechercher</button>
+        </div>
+        <div id="result" class="info" style="display:none;">Entrez numéro du train</div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('fr-MA', { 
+                timeZone: 'Africa/Casablanca',
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            document.getElementById('clock').innerHTML = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const trainsData = {
+            '6205': {route: 'CASA ROCHES NOIRES → MARRAKECH', depart: '04:00', arrive: '08:46'},
+            '6209': {route: 'CASA ROCHES NOIRES → MARRAKECH', depart: '22:52', arrive: '03:45 (+1)'},
+            '6211': {route: 'CASA ROCHES NOIRES → MARRAKECH', depart: '23:35', arrive: '04:50 (+1)'},
+            '6202': {route: 'MARRAKECH → CASA ROCHES NOIRES', depart: '00:15', arrive: '05:44'},
+            '6208': {route: 'MARRAKECH → CASA ROCHES NOIRES', depart: '17:10', arrive: '23:10'},
+            '6210': {route: 'MARRAKECH → CASA ROCHES NOIRES', depart: '19:15', arrive: '01:06 (+1)'},
+            '62048205': {route: 'MARRAKECH → JORF LASFAR', depart: '01:18', arrive: '07:30'},
+            '62068207': {route: 'MARRAKECH → JORF LASFAR', depart: '02:10', arrive: '08:06'},
+            '62128203': {route: 'MARRAKECH → JORF LASFAR', depart: '22:15', arrive: '04:30 (+1)'},
+            '82066207': {route: 'JORF LASFAR → MARRAKECH', depart: '20:51', arrive: '02:37 (+1)'},
+            '82106201': {route: 'JORF LASFAR → MARRAKECH', depart: '22:41', arrive: '04:08 (+1)'},
+            '82126203': {route: 'JORF LASFAR → BENGUERIR', depart: '23:40', arrive: '03:39 (+1)'},
+            '8211': {route: 'CASA ROCHES NOIRES → JORF LASFAR', depart: '08:10', arrive: '10:50'},
+            '8213': {route: 'CASA ROCHES NOIRES → JORF LASFAR', depart: '10:46', arrive: '13:44'},
+            '8200': {route: 'JORF LASFAR → CASA ROCHES NOIRES', depart: '10:50', arrive: '13:10'},
+            '8202': {route: 'JORF LASFAR → CASA ROCHES NOIRES', depart: '18:45', arrive: '21:11'},
+            '8208': {route: 'JORF LASFAR → CASA ROCHES NOIRES', depart: '21:20', arrive: '23:49'},
+            '8298': {route: 'JORF LASFAR → CASA ROCHES NOIRES', depart: '22:08', arrive: '00:44 (+1)'},
+            '8209': {route: 'CASA VOYAGEURS → JORF LASFAR', depart: '06:11', arrive: '08:23'},
+            '8293': {route: 'CASA VOYAGEURS → JORF LASFAR', depart: '02:00', arrive: '04:10'},
+            '8295': {route: 'CASA VOYAGEURS → JORF LASFAR', depart: '03:10', arrive: '05:22'},
+            '8292': {route: 'JORF LASFAR → CASA VOYAGEURS', depart: '01:35', arrive: '03:52'},
+            '9291': {route: 'CASA ROCHES NOIRES → KHOURIBGA', depart: '12:10', arrive: '16:01'},
+            '9293': {route: 'CASA ROCHES NOIRES → KHOURIBGA', depart: '22:15', arrive: '01:12 (+1)'},
+            '9297': {route: 'CASA VOYAGEURS → KHOURIBGA', depart: '05:44', arrive: '09:02'},
+            '9294': {route: 'KHOURIBGA → CASA ROCHES NOIRES', depart: '12:28', arrive: '17:13'},
+            '9290': {route: 'KHOURIBGA → CASA VOYAGEURS', depart: '02:05', arrive: '05:11'},
+            '9296': {route: 'KHOURIBGA → CASA VOYAGEURS', depart: '18:45', arrive: '00:09 (+1)'},
+            '92928297': {route: 'KHOURIBGA → JORF LASFAR', depart: '07:44', arrive: '11:54'},
+            '9201': {route: 'CASA ROCHES NOIRES → BERRECHID', depart: '15:10', arrive: '16:30'},
+            '9200': {route: 'BERRECHID → CASA ROCHES NOIRES', depart: '20:15', arrive: '21:00'}
+        };
+
+        function searchTrain() {
+            const trainNum = document.getElementById('trainNum').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!trainNum) {
+                resultDiv.textContent = 'Entrez numéro du train';
+                resultDiv.className = 'error';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            const train = trainsData[trainNum];
+            if (train) {
+                resultDiv.innerHTML = `
+                    <div class="route">${train.route}</div>
+                    <div class="depart">🚂 DÉPART: ${train.depart}</div>
+                    <div class="arrival">📍 ARRIVÉE: ${train.arrive}</div>
+                    <small style="color: #718096; font-size: 0.8em;">Fascicule H Septembre 2025</small>
+                `;
+                resultDiv.className = 'success';
+            } else {
+                resultDiv.innerHTML = `❌ Train ${trainNum} non trouvé`;
+                resultDiv.className = 'error';
+            }
+            resultDiv.style.display = 'block';
+        }
+
+        document.getElementById('trainNum').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchTrain();
+        });
+    </script>
+</body>
+</html>
